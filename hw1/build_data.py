@@ -29,9 +29,6 @@ to_predict = data_format(to_predict, ohe)
 
 tr_x, te_x, tr_y, te_y = train_test_split(tr_x, tr_y, test_size = 0.1)
 
-print(tr_x[:2])
-exit()
-
 print('tr_x: ', np.shape(tr_x))
 print('tr_y: ', np.shape(tr_y))
 print('te_x: ', np.shape(te_x))
