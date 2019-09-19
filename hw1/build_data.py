@@ -2,41 +2,74 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
+from sys import argv
 
 
-def data_format(data, ohe):
-    ohe_part = ohe.transform(data[:, :3]).toarray()
-    num_part = data[:, 3:] - [22, 120]
-    return np.concatenate((ohe_part, num_part), axis=1)
+def data_format1(tr_x, to_predict):
+    ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
+    tr_ohe = ohe.transform(tr_x[:, :3]).toarray()
+    tr_num = tr_x[:, 3:] - [22, 120]
+    predict_ohe = ohe.transform(to_predict[:, :3]).toarray()
+    predict_num = to_predict[:, 3:] - [22, 120]
+    return np.concatenate((tr_ohe, tr_num), axis=1), np.concatenate((predict_ohe, predict_num), axis=1)
 
-columns = ['Id', 'time', 'district', 'administration', 'type', 'content', 'latitude', 'longitude']
-df_train, df_test = pd.read_csv('./data/train.txt', header=None, names=columns+['cost_time']), pd.read_csv('./data/test.txt', header=None, names=columns)
-drop = ['Id', 'time', 'content']
-df_train = df_train.drop(columns=drop)
-df_test = df_test.drop(columns=drop)
+def data_format2(tr_x, to_predict):
+    ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
+    tr_ohe_ = ohe.transform(tr_x[:, :3]).toarray()
+    predict_ohe_ = ohe.transform(to_predict[:, :3]).toarray()
+
+    cat_idx = [len(i) for i in ohe.categories_]
+    fea_len = max(cat_idx)
+    n_tr, n_predict = len(tr_x), len(to_predict)
+
+    tr_ohe = np.zeros((n_tr, len(cat_idx)+2, fea_len))
+    predict_ohe = np.zeros((n_predict, len(cat_idx)+2, fea_len))
+    s = 0
+    e = 0
+    for i, l in enumerate(cat_idx):
+        e += l
+        tr_ohe[:, i, :l] = tr_ohe_[:, s:e]
+        tr_ohe[:, 3:, 0] = tr_x[:, 3:] - [22, 120]
+        predict_ohe[:, i, :l] = predict_ohe_[:, s:e]
+        predict_ohe[:, 3:, 0] = to_predict[:, 3:] - [22, 120]
+        s += l
+
+    return tr_ohe, predict_ohe
+
+if '__main__' == __name__:
+
+    if len(argv) < 2:
+        print('Useage: python3 build_data [format]')
+        exit()
+    format_type = int(argv[1])
+
+    columns = ['Id', 'time', 'district', 'administration', 'type', 'content', 'latitude', 'longitude']
+    df_train, df_test = pd.read_csv('./data/train.txt', header=None, names=columns+['cost_time']), pd.read_csv('./data/test.txt', header=None, names=columns)
+    drop = ['Id', 'time', 'content']
+    df_train = df_train.drop(columns=drop)
+    df_test = df_test.drop(columns=drop)
 
 
-## data
-tr_x, tr_y = df_train.iloc[:, :-1].to_numpy(), df_train.iloc[:, -1].to_numpy()
-to_predict = df_test.to_numpy()
-ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
+    ## data
+    tr_x, tr_y = df_train.iloc[:, :-1].to_numpy(), df_train.iloc[:, -1].to_numpy()
+    to_predict = df_test.to_numpy()
+    ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
 
-tr_x = data_format(tr_x, ohe)
-to_predict = data_format(to_predict, ohe)
+    if 1 == format_type:
+        tr_x, to_predict = data_format1(tr_x, to_predict)
+    else:
+        tr_x, to_predict = data_format2(tr_x, to_predict)
 
-# print(np.shape(tr_x))
-# print(np.shape(to_predict))
+    tr_x, te_x, tr_y, te_y = train_test_split(tr_x, tr_y, test_size = 0.1)
 
-tr_x, te_x, tr_y, te_y = train_test_split(tr_x, tr_y, test_size = 0.1)
+    print('tr_x: ', np.shape(tr_x))
+    print('tr_y: ', np.shape(tr_y))
+    print('te_x: ', np.shape(te_x))
+    print('te_y: ', np.shape(te_y))
+    print('to_predict: ', np.shape(to_predict))
 
-print('tr_x: ', np.shape(tr_x))
-print('tr_y: ', np.shape(tr_y))
-print('te_x: ', np.shape(te_x))
-print('te_y: ', np.shape(te_y))
-print('to_predict: ', np.shape(to_predict))
-
-np.save('./tmp/tr_x.npy', tr_x)
-np.save('./tmp/te_x.npy', te_x)
-np.save('./tmp/tr_y.npy', tr_y)
-np.save('./tmp/te_y.npy', te_y)
-np.save('./tmp/to_predict.npy', to_predict)
+    np.save(f'./tmp/tr_x_{format_type}.npy', tr_x)
+    np.save(f'./tmp/te_x_{format_type}.npy', te_x)
+    np.save(f'./tmp/tr_y_{format_type}.npy', tr_y)
+    np.save(f'./tmp/te_y_{format_type}.npy', te_y)
+    np.save(f'./tmp/to_predict_{format_type}.npy', to_predict)
