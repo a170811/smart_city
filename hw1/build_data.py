@@ -4,6 +4,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sys import argv
 
+from datetime import datetime
 
 def data_format1(tr_x, to_predict):
     ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
@@ -36,6 +37,9 @@ def data_format2(tr_x, to_predict):
 
     return tr_ohe, predict_ohe
 
+def hour_classify(time):
+    return # 0 or 1 or 2
+
 if '__main__' == __name__:
 
     if len(argv) < 2:
@@ -45,12 +49,21 @@ if '__main__' == __name__:
 
     columns = ['Id', 'time', 'district', 'administration', 'type', 'content', 'latitude', 'longitude']
     df_train, df_test = pd.read_csv('./data/train.txt', header=None, names=columns+['cost_time']), pd.read_csv('./data/test.txt', header=None, names=columns)
+
+    df_train['time'] = [datetime.strptime(time, "%Y-%m-%d %H:%M:%S") for time in df_train['time']]
+    df_test['time'] = [datetime.strptime(time, "%Y-%m-%d %H:%M:%S") for time in df_test['time']]
+
+    df_train['weekday'] = [time.weekday() for time in df_train['time']]
+    df_test['weekday'] = [time.weekday() for time in df_test['time']]
+
+    df_train['8hrs'] = [hour_classify(time) for time in df_train['time']]
+    df_test['8hrs'] = [hour_classify(time) for time in df_test['time']]
+
     drop = ['Id', 'time', 'content']
     df_train = df_train.drop(columns=drop)
     df_test = df_test.drop(columns=drop)
 
-
-    ## data
+    # data
     tr_x, tr_y = df_train.iloc[:, :-1].to_numpy(), df_train.iloc[:, -1].to_numpy()
     to_predict = df_test.to_numpy()
     ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
