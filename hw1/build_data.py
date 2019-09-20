@@ -9,33 +9,42 @@ from sys import argv
 def data_format1(tr_x, to_predict):
     ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :-2])
     tr_ohe = ohe.transform(tr_x[:, :-2]).toarray()
-    tr_num = tr_x[:, -2:] - [22, 120]
+    tr_num = tr_x[:, -2:]
     predict_ohe = ohe.transform(to_predict[:, :-2]).toarray()
-    predict_num = to_predict[:, -2:] - [22, 120]
+    predict_num = to_predict[:, -2:]
+
     return np.concatenate((tr_ohe, tr_num), axis=1), np.concatenate((predict_ohe, predict_num), axis=1)
 
 def data_format2(tr_x, to_predict):
-    ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
-    tr_ohe_ = ohe.transform(tr_x[:, :3]).toarray()
-    predict_ohe_ = ohe.transform(to_predict[:, :3]).toarray()
+    ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :-2])
+    category_dic = ohe.categories_
 
-    cat_idx = [len(i) for i in ohe.categories_]
-    fea_len = max(cat_idx)
-    n_tr, n_predict = len(tr_x), len(to_predict)
+    categories_len = [len(i) for i in category_dic]
+    feature_len = max(categories_len)
 
-    tr_ohe = np.zeros((n_tr, len(cat_idx)+2, fea_len))
-    predict_ohe = np.zeros((n_predict, len(cat_idx)+2, fea_len))
-    s = 0
-    e = 0
-    for i, l in enumerate(cat_idx):
-        e += l
-        tr_ohe[:, i, :l] = tr_ohe_[:, s:e]
-        tr_ohe[:, 3:, 0] = tr_x[:, 3:] - [22, 120]
-        predict_ohe[:, i, :l] = predict_ohe_[:, s:e]
-        predict_ohe[:, 3:, 0] = to_predict[:, 3:] - [22, 120]
-        s += l
+    tr_ohe = []
+    for event in tr_x:
+        event_ohe = np.zeros((len(categories_len)+2, feature_len))
+        for i, feature in enumerate(event):
+            if  i < tr_x.shape[1] - 2:
+                idx = np.where(category_dic[i] == feature)[0]
+                event_ohe[i][idx] = 1. if idx != -1 else 0.
+            else:
+                event_ohe[i][0] = feature
+        tr_ohe.append(event_ohe)
 
-    return tr_ohe, predict_ohe
+    predict_ohe = []
+    for event in to_predict:
+        event_ohe = np.zeros((len(categories_len)+2, feature_len))
+        for i, feature in enumerate(event):
+            if  i < tr_x.shape[1] - 2:
+                idx = np.where(category_dic[i] == feature)[0]
+                event_ohe[i][idx] = 1. if idx != -1 else 0.
+            else:
+                event_ohe[i][0] = feature
+        predict_ohe.append(event_ohe)
+
+    return np.array(tr_ohe), np.array(predict_ohe)
 
 def hour_classify(time, num_class):
     return time.hour // num_class
@@ -56,13 +65,17 @@ if '__main__' == __name__:
     df_train['weekday'] = [time.weekday() for time in df_train['time']]
     df_test['weekday'] = [time.weekday() for time in df_test['time']]
 
-    df_train['8hrs'] = [hour_classify(time, 8) for time in df_train['time']]
-    df_test['8hrs'] = [hour_classify(time, 8) for time in df_test['time']]
+    df_train['hour'] = [hour_classify(time, 1) for time in df_train['time']]
+    df_test['hour'] = [hour_classify(time, 1) for time in df_test['time']]
 
-    cols_train = ['district', 'administration', 'type', 'weekday', '8hrs', 'latitude', 'longitude', 'cost_time']
+    cols_train = ['district', 'administration', 'type', 'weekday', 'hour', 'latitude', 'longitude', 'cost_time']
     df_train = df_train[cols_train]
-    cols_test = ['district', 'administration', 'type', 'weekday', '8hrs', 'latitude', 'longitude']
+    df_train['latitude'] = df_train['latitude'] - 22
+    df_train['longitude'] = df_train['longitude'] - 120
+    cols_test = ['district', 'administration', 'type', 'weekday', 'hour', 'latitude', 'longitude']
     df_test = df_test[cols_test]
+    df_test['latitude'] = df_test['latitude'] - 22
+    df_test['longitude'] = df_test['longitude'] - 120
 
     # data
     tr_x, tr_y = df_train.iloc[:, :-1].to_numpy(), df_train.iloc[:, -1].to_numpy()
@@ -70,13 +83,12 @@ if '__main__' == __name__:
 
     if 1 == format_type:
         tr_x, to_predict = data_format1(tr_x, to_predict)
-    # elif 2 == format_type:
-    #     tr_x, to_predict = data_format2(tr_x, to_predict)
+    elif 2 == format_type:
+        tr_x, to_predict = data_format2(tr_x, to_predict)
     else:
-        print(f'no format_type: {format_tyupe}')
+        print(f'no format_type: {format_type}')
         exit()
 
-    print(tr_x, to_predict)
     tr_x, te_x, tr_y, te_y = train_test_split(tr_x, tr_y, test_size = 0.1)
 
     print('tr_x: ', np.shape(tr_x))
