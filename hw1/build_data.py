@@ -1,10 +1,11 @@
+from bisect import bisect_right
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sys import argv
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def data_format1(tr_x, to_predict):
     ohe = OneHotEncoder(handle_unknown='ignore').fit(tr_x[:, :3])
@@ -38,7 +39,8 @@ def data_format2(tr_x, to_predict):
     return tr_ohe, predict_ohe
 
 def hour_classify(time):
-    return # 0 or 1 or 2
+    l = list([i for i in range(0, 24, 8)])
+    return bisect_right(l, time.hour)
 
 if '__main__' == __name__:
 
