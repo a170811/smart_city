@@ -1,3 +1,6 @@
 tmp/
 env/
 data/
+models/
+logs/
+__pycache__/
