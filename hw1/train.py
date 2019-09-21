@@ -3,7 +3,7 @@ import numpy as np
 from keras.layers import Input, Dense, Dropout, Conv1D, Flatten
 from keras.models import Model
 from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint, TensorBoard, LearningRateScheduler
+from keras.callbacks import EarlyStopping, ModelCheckpoint, TensorBoard, LearningRateScheduler
 from sys import argv
 
 # import tensorflow as tf
@@ -14,7 +14,7 @@ from sys import argv
 from utils import rmse
 
 batch_size = 128
-epochs = 100
+epochs = 300
 
 def build_class_model(input_shape):
 
@@ -96,9 +96,10 @@ if __name__ == '__main__':
     x, y = np.load(f'tmp/tr_x_{mode}.npy', allow_pickle=True), np.load(f'tmp/tr_y_{mode}.npy', allow_pickle=True)
     print(x.shape)
 
-    model_ckpt = ModelCheckpoint(f'models/model{model_name}.h5', verbose = 1, save_best_only = True)
-    tensorboard = TensorBoard(log_dir=f'logs_with_datetime/model{model_name}', histogram_freq=0, write_graph=True, write_images=False)
+    model_ckpt = ModelCheckpoint(f'models/{model_name}.h5', verbose = 1, save_best_only = True)
+    tensorboard = TensorBoard(log_dir=f'logs_with_datetime/{model_name}', histogram_freq=0, write_graph=True, write_images=False)
     lr_scheduler = LearningRateScheduler(lr_schedule)
+    es = EarlyStopping(patience=20, restore_best_weights=True)
 
     print('building model...')
     model = build_naiive_model(x.shape[-1:]) if 1==mode else build_class_model((x.shape[-2], x.shape[-1]))
@@ -109,5 +110,5 @@ if __name__ == '__main__':
             epochs = epochs,
             validation_split = 0.4,
             shuffle = True,
-            callbacks = [model_ckpt, tensorboard]#, lr_scheduler]
+            callbacks = [es, tensorboard]#, lr_scheduler]
         )
