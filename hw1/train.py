@@ -85,22 +85,23 @@ def lr_schedule(epoch):
         return 0.00001
 
 if __name__ == '__main__':
-    if len(argv) < 2:
-        print('usage: ./train.py model_name')
+    if len(argv) < 3:
+        print('usage: ./train.py [mode] [model_name]')
         exit()
 
-    model_name=argv[1]
+    mode=int(argv[1])
+    model_name=argv[2]
+    assert 1==mode or 2==mode, 'mode must be 1 or 2'
     print('loading data...')
-    x, y = np.load('tmp/tr_x_1.npy'), np.load('tmp/tr_y_1.npy')
+    x, y = np.load(f'tmp/tr_x_{mode}.npy', allow_pickle=True), np.load(f'tmp/tr_y_{mode}.npy', allow_pickle=True)
     print(x.shape)
 
-    model_ckpt = ModelCheckpoint(f'models/{model_name}.h5', verbose = 1, save_best_only = True)
-    tensorboard = TensorBoard(log_dir=f'logs_with_datetime/{model_name}', histogram_freq=0, write_graph=True, write_images=False)
+    model_ckpt = ModelCheckpoint(f'models/model{model_name}.h5', verbose = 1, save_best_only = True)
+    tensorboard = TensorBoard(log_dir=f'logs_with_datetime/model{model_name}', histogram_freq=0, write_graph=True, write_images=False)
     lr_scheduler = LearningRateScheduler(lr_schedule)
 
     print('building model...')
-    # model = build_naiive_model(x.shape[-1:])
-    model = build_class_model((x.shape[-2], x.shape[-1]))
+    model = build_naiive_model(x.shape[-1:]) if 1==mode else build_class_model((x.shape[-2], x.shape[-1]))
     model.compile(loss = 'mean_squared_error', optimizer = Adam(lr = 1e-4), metrics = [rmse, 'mae'])
     model.fit(
             x, y,

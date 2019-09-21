@@ -59,8 +59,8 @@ if '__main__' == __name__:
     columns = ['Id', 'time', 'district', 'administration', 'type', 'content', 'latitude', 'longitude']
     df_train, df_test = pd.read_csv('./data/train.txt', header=None, names=columns+['cost_time']), pd.read_csv('./data/test.txt', header=None, names=columns)
 
-    df_train['time'] = [datetime.strptime(time, "%Y-%m-%d %H:%M:%S") for time in df_train['time']]
-    df_test['time'] = [datetime.strptime(time, "%Y-%m-%d %H:%M:%S") for time in df_test['time']]
+    df_train['time'] = df_train['time'].astype('datetime64[ns]')
+    df_test['time'] = df_test['time'].astype('datetime64[ns]')
 
     df_train['weekday'] = [time.weekday() for time in df_train['time']]
     df_test['weekday'] = [time.weekday() for time in df_test['time']]
