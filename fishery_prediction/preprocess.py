@@ -6,6 +6,7 @@ from sys import argv
 import pandas as pd
 
 def preprocess(df, columns, unit_length=7, num_input_unit=4, num_output_unit=1):
+
     df = df[columns]
     df = df.dropna()
 
