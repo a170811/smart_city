@@ -5,7 +5,8 @@ import os
 from sys import argv
 
 from keras.models import Sequential
-from keras.layers import Input, LSTM, Lambda, Conv1D, Dropout, Dense, Flatten, Dropout
+from keras.layers import Input, LSTM, Lambda, Conv1D, Dropout, Dense,\
+    Flatten, Dropout, BatchNormalization
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
@@ -16,35 +17,34 @@ from sklearn.metrics import mean_squared_error
 
 def build_model(unit_size, num_input_unit, num_output_unit):
 
-    model = Sequential()
-    model.add(LSTM(256, activation='relu', input_shape=(num_input_unit, unit_size), return_sequences=True))
-    model.add(LSTM(512, activation='relu', input_shape=(num_input_unit, unit_size), return_sequences=True))
-    model.add(LSTM(512, activation='relu', input_shape=(num_input_unit, unit_size), return_sequences=True))
-    model.add(LSTM(1024, activation='relu', input_shape=(num_input_unit, unit_size), return_sequences=False))
-    model.add(Dense(512))
-    model.add(Dropout(0.4))
-    model.add(Dense(1))
-    model.add(Lambda(lambda x: K.expand_dims(x, 1)))
+    inputs = Input(shape=(num_input_unit, unit_size))
+
+    model = BatchNormalization()(inputs)
+    model = LSTM(256, activation='relu', return_sequences=False)(model)
+    model = Dense(1)(model)
+
+    model = Model(inputs, model)
+
     model.summary()
 
     return model
 
+
 def build_large_model(unit_size, num_input_unit, num_output_unit):
 
     inputs = Input(shape=(num_input_unit, unit_size))
-    model = inputs
-    model = LSTM(512, activation='relu', return_sequences=True)(model)
-    model = LSTM(512, activation='relu', return_sequences=True)(model)
-    model = Dropout(0.3)(model)
-    model = LSTM(1024, activation='relu', return_sequences=True)(model)
 
-    model = Conv1D(128, 1, activation='relu')(model)
-    model = Conv1D(128, num_input_unit, activation='relu')(model)
-
-    model = LSTM(1, return_sequences=True)(model)
-    model = Lambda(lambda x: x[:, -num_output_unit:, :])(model)
+    model = BatchNormalization()(inputs)
+    model = LSTM(256, activation='relu', return_sequences=True)(model)
+    model = LSTM(256, activation='relu', return_sequences=True)(model)
+    model = LSTM(256, activation='relu', return_sequences=True)(model)
+    model = LSTM(256, activation='relu', return_sequences=False)(model)
+    model = Dense(128)(model)
+    model = Dropout(0.2)(model)
+    model = Dense(1)(model)
 
     model = Model(inputs, model)
+
     model.summary()
 
     return model
@@ -79,7 +79,7 @@ def train_and_eval_model(model_name, model_type, train_x, train_y, valid_x, vali
 	epochs=1000,\
 	callbacks=[model_ckpt, tensorboard, early_stp])
     mse = model.evaluate(test_x, test_y)
-    print(mse)
+    print(f'mse = {mse}')
 
 def linear_regression(test_x, test_y):
 
@@ -96,7 +96,7 @@ def linear_regression(test_x, test_y):
 
     predictions = np.array(predictions)
 
-    mse = mean_squared_error(np.squeeze(predictions, axis=2), np.squeeze(test_y, axis=2))
+    mse = mean_squared_error(np.squeeze(predictions, axis=2), test_y)
     print(mse)
 
 if __name__ == '__main__':
