@@ -75,6 +75,14 @@ def preprocess(data, unit_length=1, sample_stride=7, num_input_unit=4,
     #
     # ** the timestemp is refer to the first day of each unit
 
+
+    # drop na columns
+    sparse_columns = data.columns[data.isnull().mean() > 0.5].to_list()
+    print('drop col: ', sparse_columns)
+    data = data.drop(columns=sparse_columns)
+
+    data = data.reset_index(drop=True)
+    data = data.fillna(0)
     dates = data['date']
     values = data.iloc[:, 1:]
 
@@ -88,8 +96,6 @@ def preprocess(data, unit_length=1, sample_stride=7, num_input_unit=4,
         unit_set.loc[i] = [t] + x.to_list()
     unit_set = unit_set.reset_index(drop=True)
 
-
-    print(unit_set)
     mask_len = num_input_unit + num_output_unit
     set_x = []
     set_y = []
@@ -217,6 +223,7 @@ if '__main__' == __name__:
         'currency': None,
         'powder_feed': ['same', 'same'],
         'yellow_bean': ['same'],
+        'weather': None,
     }
     data_wu = {
         'wu_export': ['divide', 'same'],
@@ -239,4 +246,6 @@ if '__main__' == __name__:
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
     res = d.get_data(*d.get_start_end_tick())
+
+    print(res)
     data, time = preprocess(res, ans_col='wu_day_price')
