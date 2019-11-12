@@ -4,8 +4,10 @@ from calendar import monthrange
 from datetime import datetime
 import numpy as np
 import pandas as pd
+import pickle
 
 class RowDataHandler():# {{{
+
     def __init__(self):
 
         self.df = pd.DataFrame(pd.date_range('1990-01-01', '2020-12-31'), columns=['date'])
@@ -34,6 +36,9 @@ class RowDataHandler():# {{{
             df_new = df_load
 
         self.df = pd.merge(self.df, df_new, how='inner', on=['date'])
+
+    def drop_columns(self, columns):
+        self.df = self.df.drop(columns=columns)
 
     def get_data(self, start, end):
 
@@ -246,6 +251,10 @@ if '__main__' == __name__:
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
     res = d.get_data(*d.get_start_end_tick())
+    # col = d.get_columns()[5:]
+    # d.drop_columns(col)
+    # res = d.get_data(*d.get_start_end_tick())
 
-    print(res)
     data, time = preprocess(res, ans_col='wu_day_price')
+    pickle.dump(data, open('./data/wu_data.pkl', 'wb'))
+    pickle.dump(time, open('./data/wu_time.pkl', 'wb'))

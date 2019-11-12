@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from process_tool import RowDataHandler, preprocess
+from build_set import RowDataHandler, preprocess
 from model import train_and_eval_model, linear_regression
 
 if '__main__' == __name__:
