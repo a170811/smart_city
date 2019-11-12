@@ -4,6 +4,7 @@ from calendar import monthrange
 from datetime import datetime
 import numpy as np
 import pandas as pd
+from train import train
 
 class RowDataHandler():
     def __init__(self):
@@ -104,19 +105,27 @@ class RowDataHandler():
         valid_x, valid_y = serialize(valid, num_input_unit, num_output_unit)
         test_x, test_y = serialize(test, num_input_unit, num_output_unit)
 
-        print('tr_x: ', train_x.shape)
-        print('tr_y: ', train_y.shape)
-        print('va_x: ', valid_x.shape)
-        print('va_y: ', valid_y.shape)
-        print('te_x: ', test_x.shape)
-        print('te_y: ', test_y.shape)
-
-        np.save('features/train_x.npy', train_x)
-        np.save('features/train_y.npy', train_y)
-        np.save('features/valid_x.npy', valid_x)
-        np.save('features/valid_y.npy', valid_y)
-        np.save('features/test_x.npy', test_x)
-        np.save('features/test_y.npy', test_y)
+        # print('tr_x: ', train_x.shape)
+        # print('tr_y: ', train_y.shape)
+        # print('va_x: ', valid_x.shape)
+        # print('va_y: ', valid_y.shape)
+        # print('te_x: ', test_x.shape)
+        # print('te_y: ', test_y.shape)
+        #
+        # np.save('features/train_x.npy', train_x)
+        # np.save('features/train_y.npy', train_y)
+        # np.save('features/valid_x.npy', valid_x)
+        # np.save('features/valid_y.npy', valid_y)
+        # np.save('features/test_x.npy', test_x)
+        # np.save('features/test_y.npy', test_y)
+        return {
+            'train_x': train_x,
+            'train_y': train_y,
+            'valid_x': valid_x,
+            'valid_y': valid_y,
+            'test_x': test_x,
+            'test_y': test_y,
+        }
 
 if '__main__' == __name__:
 
@@ -148,10 +157,6 @@ if '__main__' == __name__:
     for filename, inpu_method in data_wu.items():
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
-    res = d.get_data(*d.get_start_end_tick())
-    d.preprocess(d.get_columns(), 1, 7, 1)
-    # print(res.shape)
-    # print(res)
-    # print(d.df)
-    # print(d.start, d.end)
+    data = d.preprocess(d.get_columns(), 1, 7, 1)
+    train('test', **data)
 
