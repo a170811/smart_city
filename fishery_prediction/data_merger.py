@@ -8,11 +8,7 @@ import pandas as pd
 class RowDataHandler():
     def __init__(self):
 
-        start = '1990-01-01'
-        end = '2020-12-31'
-        self.df = pd.DataFrame(pd.date_range(start, end), columns=['date'])
-        self.start = datetime.strptime(start, '%Y-%m-%d')
-        self.end = datetime.strptime(end, '%Y-%m-%d')
+        self.df = pd.DataFrame(pd.date_range('1990-01-01', '2020-12-31'), columns=['date'])
 
     def add(self, df_load, inputations):
         # df(dataframe): first col must be 'date'
@@ -38,16 +34,27 @@ class RowDataHandler():
             df_new = df_load
 
         self.df = pd.merge(self.df, df_new, how='inner', on=['date'])
-        self.start = self.df.iloc[0, 0]
-        self.end = self.df.iloc[-1, 0]
 
     def get_data(self, start, end):
+
+        assert len(self.df) > 0, 'there is no data in handler, please add first!!'
         start = datetime.strptime(start, '%Y-%m-%d')
         end = datetime.strptime(end, '%Y-%m-%d')
-        assert (start > self.start) & (end < self.end), 'timestamp is out of data'
+        df_start = self.df['date'].iloc[0]
+        df_end = self.df['date'].iloc[-1]
+        assert (start >= df_start) & (end <= df_end), 'timestamp is out of data'
 
-        res = self.df.loc[(self.df['date'] > start) & (self.df['date'] < end)]
+        res = self.df.loc[(self.df['date'] >= start) & (self.df['date'] <= end)]
         return res.reset_index(drop=True)
+
+    def get_columns(self):
+        return self.df.columns
+
+    def get_start_end_tick(self):
+        date = self.df['date']
+        start = date.iloc[0].__format__('%Y-%m-%d')
+        end = date.iloc[-1].__format__('%Y-%m-%d')
+        return start, end
 
     def preprocess(self, columns, unit_length=1, num_input_unit=4, num_output_unit=1):
 
@@ -97,6 +104,13 @@ class RowDataHandler():
         valid_x, valid_y = serialize(valid, num_input_unit, num_output_unit)
         test_x, test_y = serialize(test, num_input_unit, num_output_unit)
 
+        print('tr_x: ', train_x.shape)
+        print('tr_y: ', train_y.shape)
+        print('va_x: ', valid_x.shape)
+        print('va_y: ', valid_y.shape)
+        print('te_x: ', test_x.shape)
+        print('te_y: ', test_y.shape)
+
         np.save('features/train_x.npy', train_x)
         np.save('features/train_y.npy', train_y)
         np.save('features/valid_x.npy', valid_x)
@@ -134,9 +148,9 @@ if '__main__' == __name__:
     for filename, inpu_method in data_wu.items():
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
-    print(d.df.dtypes)
-    d.preprocess(['date', 'mean price(doller/kg)'], 1, 7, 1)
-    # res = d.get_data('2014-02-22', '2018-09-12')
+    res = d.get_data(*d.get_start_end_tick())
+    d.preprocess(d.get_columns(), 1, 7, 1)
+    # print(res.shape)
     # print(res)
     # print(d.df)
     # print(d.start, d.end)
