@@ -19,6 +19,13 @@ class RowDataHandler():# {{{
         assert 'date' == df_load.columns[0],\
                 'the first columns of loading data, should be `date`'
 
+        # drop na columns
+        sparse_columns = df_load.columns[df_load.isnull().mean() > 0.5].to_list()
+        if 0 != len(sparse_columns):
+            print('\ndrop sparse col: ', sparse_columns)
+            print('')
+        df_load = df_load.drop(columns=sparse_columns)
+
         df_load = df_load.astype(str)
         df_load['date'] = pd.to_datetime(df_load['date'])
         df_load.iloc[:, 1:] = df_load.iloc[:, 1:].apply(lambda x: x.str.replace(',', ''))
@@ -80,11 +87,6 @@ def preprocess(data, unit_length=1, sample_stride=7, num_input_unit=4,
     #
     # ** the timestemp is refer to the first day of each unit
 
-
-    # drop na columns
-    sparse_columns = data.columns[data.isnull().mean() > 0.5].to_list()
-    print('drop col: ', sparse_columns)
-    data = data.drop(columns=sparse_columns)
 
     data = data.reset_index(drop=True)
     data = data.fillna(0)
@@ -233,7 +235,7 @@ if '__main__' == __name__:
     data_wu = {
         'wu_export': ['divide', 'same'],
         'wu_price_perDate': None,
-        # 'wu_price_perMonth': ['same', 'divide'],
+        'wu_price_perMonth': ['same', 'divide'],
     }
     data_chi = {
         'chi_export': ['divide', 'same'],
@@ -251,6 +253,8 @@ if '__main__' == __name__:
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
     res = d.get_data(*d.get_start_end_tick())
+    print(res)
+    exit()
     # col = d.get_columns()[5:]
     # d.drop_columns(col)
     # res = d.get_data(*d.get_start_end_tick())
