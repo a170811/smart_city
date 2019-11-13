@@ -98,7 +98,7 @@ def exp1():# {{{
     ## weather_7dl is mis delete by ken...
 # }}}
 
-def exp2():
+def exp2():# {{{
     # which features to use
 
     d = RowDataHandler()
@@ -113,6 +113,8 @@ def exp2():
     columns = np.array((d.get_columns()))
     columns = np.delete(columns, np.where((columns == 'date') | (columns == 'wu_day_price')))
 
+    columns_history = []
+    mse_history = []
     ori_columns = columns.copy()
     base = ['date', 'wu_day_price']
     for _ in range(5):
@@ -126,14 +128,22 @@ def exp2():
             res_list.append(res)
         idx = np.argmin(res_list)
         columns = np.delete(columns, idx)
+        columns_history.append(columns)
+        mse_history.append(res_list)
     print('The origin columns: ')
     print(ori_columns)
     print('The final columns: ')
     print(columns)
+    for i in range(len(columns_history)):
+        print('res: ', mse_history[i])
+        print('columns: ', columns_history[i])
+# }}}
+
 
 if '__main__' == __name__:
 
-    path = './data/use'
+    # path = './data/use'
+    path = './backend'
 
     # value is None for daily data
     data_common = {
