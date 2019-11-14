@@ -8,6 +8,19 @@ import pandas as pd
 from build_set import RowDataHandler, preprocess
 from model import train_and_eval_model, linear_regression
 
+def load_wu(start=None, end=None):
+
+    d = RowDataHandler()
+    for filename, inpu_method in data_common.items():
+        d.add(pd.read_csv(f'{path}/{filename}.csv'), inpu_method)
+    for filename, inpu_method in data_wu.items():
+        d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
+
+    if start is None and end is None:
+        start, end = d.get_start_end_tick()
+
+    return d, d.get_data(start, end)
+
 def main():# {{{
 
     path = './data/use'
@@ -67,7 +80,6 @@ def main():# {{{
     train_and_eval_model('weather_4ml', 'large', **data)
 # }}}
 
-
 def exp1():# {{{
     # data before 2013 to drop or not
 
@@ -107,7 +119,6 @@ def exp2():# {{{
     for filename, inpu_method in data_wu.items():
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
-    d.drop_columns(['sea_pa', 'point_temp', 'rain_hour', 'rain_10m', 'rain_60m', 'shine_hour', 'shine_ratio', 'shine_amount', 'visibility', 'A_evap', 'ultra_high', 'cloud'])
     start, end = d.get_start_end_tick()
     merged_data = d.get_data(start, end)
     columns = np.array((d.get_columns()))
@@ -117,7 +128,7 @@ def exp2():# {{{
     mse_history = []
     ori_columns = columns.copy()
     base = ['date', 'wu_day_price']
-    for _ in range(5):
+    for _ in range(len(columns) - 2):
         res_list = []
         for i in range(len(columns)):
             mask = np.ones(len(columns), dtype=bool)
@@ -137,8 +148,32 @@ def exp2():# {{{
     for i in range(len(columns_history)):
         print('res: ', mse_history[i])
         print('columns: ', columns_history[i])
+        print('')
 # }}}
 
+
+def exp3():# {{{
+    # testing for results of exp2, results of selection
+
+    d, data = load_wu()
+    use_cols = ['date', 'wu_day_price'] + ['CAD', 'SAR', 'AED', 'pf_weight', 'yb_price', 'pa', 'pa_high', 'pa_low',
+      'temp_high', 'temp_low', 'humidity', 'humidity_low', 'wind_dir', 'wind_max',
+      'wind_max_dir', 'rainfall', 'wu_ex_price', 'wu_day_amount']
+
+    ori_data, _ = preprocess(data, 1, 1, 7, 1, ans_col='wu_day_price')
+    drop_data, _ = preprocess(data[use_cols], 1, 1, 7, 1, ans_col='wu_day_price')
+    base_ori = train_and_eval_model('test', 'base', **ori_data, drop_model=True)
+    base_select = train_and_eval_model('test', 'base', **drop_data, drop_model=True)
+    large_ori = train_and_eval_model('test', 'large', **ori_data, drop_model=True)
+    large_select = train_and_eval_model('test', 'large', **drop_data, drop_model=True)
+
+    print('base model: ')
+    print('origin columns: ', base_ori)
+    print('selection columns: ', base_select)
+    print('large model: ')
+    print('origin columns: ', large_ori)
+    print('selection columns: ', large_select)
+# }}}
 
 if '__main__' == __name__:
 
@@ -164,9 +199,13 @@ if '__main__' == __name__:
         'chi_small_fish': ['divide', 'same']
     }
 
+    if 0 == len(argv):
+        test()
+
     if argv[1] == '1':
         exp1()
     elif argv[1] == '2':
         exp2()
-    # main()
+    elif argv[1] == '3':
+        exp3()
 
