@@ -20,8 +20,9 @@ def build_model(unit_size, num_input_unit, num_output_unit):
     inputs = Input(shape=(num_input_unit, unit_size))
 
     model = BatchNormalization()(inputs)
-    model = LSTM(256, activation='relu', return_sequences=False)(model)
-    model = Dense(1)(model)
+    model = LSTM(256, activation='relu', return_sequences=True)(model)
+    model = Dense(num_output_unit)(model)
+    model = Lambda(lambda x: x[:, -1:, :])(model)
 
     model = Model(inputs, model)
 
@@ -41,7 +42,8 @@ def build_large_model(unit_size, num_input_unit, num_output_unit):
     model = LSTM(256, activation='relu', return_sequences=False)(model)
     model = Dense(128)(model)
     model = Dropout(0.2)(model)
-    model = Dense(1)(model)
+    model = Dense(num_output_unit)(model)
+    model = Lambda(lambda x: x[:, -1:, :])(model)
 
     model = Model(inputs, model)
 

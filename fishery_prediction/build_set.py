@@ -22,7 +22,8 @@ class RowDataHandler():# {{{
         # drop na columns
         sparse_columns = df_load.columns[df_load.isnull().mean() > 0.5].to_list()
         if 0 != len(sparse_columns):
-            print('\ndrop sparse col: ', sparse_columns)
+            print('\ndrop sparse col: ')
+            print(sparse_columns)
             print('')
         df_load = df_load.drop(columns=sparse_columns)
 
@@ -47,7 +48,7 @@ class RowDataHandler():# {{{
     def drop_columns(self, columns):
         self.df = self.df.drop(columns=columns)
 
-    def get_data(self, start, end):
+    def get_merged_data(self, start, end):
 
         assert len(self.df) > 0, 'there is no data in handler, please add first!!'
         start = datetime.strptime(start, '%Y-%m-%d')
@@ -69,16 +70,9 @@ class RowDataHandler():# {{{
         return start, end
 # }}}
 
-def get_sample(data, num_input_unit, num_output_unit):
 
-    x = data.iloc[:num_input_unit, 1:].to_numpy()
-    y = data.iloc[num_output_unit:, 'wu_day_price'].to_numpy()
-    t = data['date'][0]
-    return x, y, t
-
-
-def preprocess(data, unit_length=1, sample_stride=7, num_input_unit=4,
-                num_output_unit=1, ans_col='wu_day_price'):
+def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,# {{{
+                num_pred_unit=1):
     #       unit length
     #     |<---->| (mean)
     # ------------------------------- time ------------------------------->
@@ -87,39 +81,34 @@ def preprocess(data, unit_length=1, sample_stride=7, num_input_unit=4,
     #
     # ** the timestemp is refer to the first day of each unit
 
-
+    assert len(data) == len(ans), 'length of data and ans are mismatch!!'
     data = data.reset_index(drop=True)
     data = data.fillna(0)
-    dates = data['date']
-    values = data.iloc[:, 1:]
 
-    unit_set = pd.DataFrame(columns=['date']+list(values.columns))
+    unit_x, unit_y, unit_t = [], [], []
     for i in range(0, len(data), sample_stride):
         end = i + unit_length
         if end > len(data):
             break
-        x = values.iloc[i: end, :].mean(axis=0)
-        t = dates[i]
-        unit_set.loc[i] = [t] + x.to_list()
-    unit_set = unit_set.reset_index(drop=True)
+        x = data.iloc[i: end, :].mean(axis=0).to_list()
+        y = ans.iloc[i: end].mean(axis=0).to_list()
+        t = date[i]
+        unit_x.append(x)
+        unit_y.append(y)
+        unit_t.append(t)
 
-    mask_len = num_input_unit + num_output_unit
-    set_x = []
-    set_y = []
-    set_t = []
-    for i in range(len(unit_set)):
-        end = i + mask_len
-        if end > len(unit_set):
+    end = num_used_unit + num_pred_unit
+    set_x, set_y, set_t = [], [], []
+    for i in range(len(unit_x)):
+        if (i + end) > len(unit_x):
             break
-        units = unit_set.iloc[i: end, :]
-        unit_x = units.iloc[:num_input_unit, 1:].to_numpy()
-        unit_y = units[ans_col].iloc[-num_output_unit:].to_numpy()
-        unit_t = units['date'].iloc[0]
-        set_x.append(unit_x)
-        set_y.append(unit_y)
-        set_t.append(unit_t)
-
+        x = unit_x[i:i+num_used_unit]
+        y = unit_y[i+num_used_unit:i+end]
+        set_x.append(x)
+        set_y.append(y)
+        set_t.append(unit_t[i+num_used_unit])
     set_x, set_y, set_t = np.array(set_x), np.array(set_y), np.array(set_t)
+
     split_point = [int(len(set_x)*0.8), int(len(set_x)*0.9)]
     tr_x, va_x, te_x = np.split(set_x, split_point)
     tr_y, va_y, te_y = np.split(set_y, split_point)
@@ -138,88 +127,8 @@ def preprocess(data, unit_length=1, sample_stride=7, num_input_unit=4,
         'valid_t': va_t,
         'test_t': te_t,
     }
-
     return data_res, time_res
-
-    # def preprocess(self, columns, unit_length=1, sample_stride=1, num_input_unit=4,
-    #                 num_output_unit=1):
-    #
-    #     def build_unit(dates, content, i_unit):
-    #         dates = dates[i_unit:].reset_index(drop=True)
-    #         content = content[:len(dates)].reset_index(drop=True)
-    #         # content['amount(kg)'] = content['amount(kg)'].str.replace(',', '')
-    #         content = content.astype(float)
-    #
-    #         return pd.concat([dates, content], axis=1, sort=False, ignore_index=False)
-    #
-    #     def serialize(dataset, num_input_unit, num_output_unit):
-    #
-    #         feature_length = dataset.shape[0] - num_input_unit - num_output_unit + 1
-    #         feature_x = np.zeros([feature_length, num_input_unit, dataset.shape[1]])
-    #         for i in range(feature_length):
-    #             for j in range(num_input_unit):
-    #                 for k in range(dataset.shape[1]):
-    #                     feature_x[i, j, k] = dataset.iloc[i + j, k]
-    #
-    #         feature_y = np.zeros([feature_length, num_output_unit, 1])
-    #         for i in range(feature_length):
-    #             for j in range(num_output_unit):
-    #                 feature_y[i, j, 0] = dataset.iloc[i + j + num_input_unit, -1]
-    #
-    #         return feature_x, feature_y
-    #
-    #     df = self.df[columns]
-    #     df = df.dropna()
-    #
-    #     time
-    #     for i in range(len(df), sample_stride):
-    #         
-    #
-    #
-    #     dates = df['date']
-    #     content = df[columns[1:]]
-    #
-    #     unit_length = 7
-    #     units = []
-    #     for i in range(unit_length):
-    #         unit = build_unit(dates, content, i).set_index('date')
-    #         units.append(unit)
-    #
-    #     print(df)
-    #     units = pd.concat(units).groupby('date').mean()
-    #     print(units)
-    #     exit()
-    #     units = units[unit_length - 1:]
-    #
-    #     train = units[units.index.year != 2018 and units.index.year != 2019]
-    #     valid = units[units.index.year == 2018]
-    #     test = units[units.index.year == 2019]
-    #
-    #     train_x, train_y = serialize(train, num_input_unit, num_output_unit)
-    #     valid_x, valid_y = serialize(valid, num_input_unit, num_output_unit)
-    #     test_x, test_y = serialize(test, num_input_unit, num_output_unit)
-    #
-    #     # print('tr_x: ', train_x.shape)
-    #     # print('tr_y: ', train_y.shape)
-    #     # print('va_x: ', valid_x.shape)
-    #     # print('va_y: ', valid_y.shape)
-    #     # print('te_x: ', test_x.shape)
-    #     # print('te_y: ', test_y.shape)
-    #     #
-    #     # np.save('features/train_x.npy', train_x)
-    #     # np.save('features/train_y.npy', train_y)
-    #     # np.save('features/valid_x.npy', valid_x)
-    #     # np.save('features/valid_y.npy', valid_y)
-    #     # np.save('features/test_x.npy', test_x)
-    #     # np.save('features/test_y.npy', test_y)
-    #     return {
-    #         'train_x': train_x,
-    #         'train_y': train_y,
-    #         'valid_x': valid_x,
-    #         'valid_y': valid_y,
-    #         'test_x': test_x,
-    #         'test_y': test_y,
-    #     }
+# }}}
 
 if '__main__' == __name__:
 
@@ -252,13 +161,17 @@ if '__main__' == __name__:
     for filename, inpu_method in data_wu.items():
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
-    res = d.get_data(*d.get_start_end_tick())
-    print(res)
-    exit()
+    merged_data = d.get_merged_data(*d.get_start_end_tick())
     # col = d.get_columns()[5:]
     # d.drop_columns(col)
-    # res = d.get_data(*d.get_start_end_tick())
+    # res = d.get_merged_data(*d.get_start_end_tick())
 
-    data, time = preprocess(res, ans_col='wu_day_price')
+    data, ans , date = merged_data.iloc[:, 1:], merged_data[['wu_day_price']],\
+                                merged_data['date']
+
+    columns = data.columns
+    data, time = preprocess(data, ans, date)
+
     pickle.dump(data, open('./data/wu_data.pkl', 'wb'))
     pickle.dump(time, open('./data/wu_time.pkl', 'wb'))
+    pickle.dump(columns, open('./data/wu_columns.pkl', 'wb'))

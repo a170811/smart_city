@@ -19,7 +19,7 @@ def load_wu(start=None, end=None):
     if start is None and end is None:
         start, end = d.get_start_end_tick()
 
-    return d, d.get_data(start, end)
+    return d, d.get_merged_data(start, end)
 
 def main():# {{{
 
@@ -51,32 +51,32 @@ def main():# {{{
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
     # ['date', 'USD', 'CAD', 'SAR', 'AED', 'pf_weight', 'pf_price', 'yb_price', 'temp', 'temp_high', 'temp_low', 'point_temp', 'wu_ex_weight', 'wu_ex_price', 'wu_day_price', 'wu_day_amount']
-    merged_data = d.get_data(*d.get_start_end_tick())[['date', 'wu_day_price']]
-    data, time = preprocess(merged_data, 1, 1, 7, 1, ans_col='wu_day_price')
+    merged_data = d.get_merged_data(*d.get_start_end_tick())[['date', 'wu_day_price']]
+    data, time = preprocess(merged_data, 1, 1, 7, 1)
     linear_regression(data['test_x'], data['test_y'])
 
-    merged_data = d.get_data(*d.get_start_end_tick())
+    merged_data = d.get_merged_data(*d.get_start_end_tick())
     merged_data = merged_data[['date', 'temp', 'temp_high', 'temp_low', 'wu_ex_weight', 'wu_ex_price', 'wu_day_price', 'wu_day_amount']]
     merged_data = merged_data.dropna().reset_index(drop=True)
-    data, time = preprocess(merged_data, 1, 1, 7, 1, ans_col='wu_day_price')
+    data, time = preprocess(merged_data, 1, 1, 7, 1)
     train_and_eval_model('weather_7dl', 'large', **data)
 
-    merged_data = d.get_data(*d.get_start_end_tick())
+    merged_data = d.get_merged_data(*d.get_start_end_tick())
     merged_data = merged_data[['date', 'temp', 'temp_high', 'temp_low', 'wu_ex_weight', 'wu_ex_price', 'wu_day_price', 'wu_day_amount']]
     merged_data = merged_data.dropna().reset_index(drop=True)
-    data, time = preprocess(merged_data, 1, 1, 14, 1, ans_col='wu_day_price')
+    data, time = preprocess(merged_data, 1, 1, 14, 1)
     train_and_eval_model('weather_14dl', 'large', **data)
 
-    merged_data = d.get_data(*d.get_start_end_tick())
+    merged_data = d.get_merged_data(*d.get_start_end_tick())
     merged_data = merged_data[['date', 'temp', 'temp_high', 'temp_low', 'wu_ex_weight', 'wu_ex_price', 'wu_day_price', 'wu_day_amount']]
     merged_data = merged_data.dropna().reset_index(drop=True)
-    data, time = preprocess(merged_data, 7, 7, 4, 1, ans_col='wu_day_price')
+    data, time = preprocess(merged_data, 7, 7, 4, 1)
     train_and_eval_model('weather_4wl', 'large', **data)
 
-    merged_data = d.get_data(*d.get_start_end_tick())
+    merged_data = d.get_merged_data(*d.get_start_end_tick())
     merged_data = merged_data[['date', 'temp', 'temp_high', 'temp_low', 'wu_ex_weight', 'wu_ex_price', 'wu_day_price', 'wu_day_amount']]
     merged_data = merged_data.dropna().reset_index(drop=True)
-    data, time = preprocess(merged_data, 30, 30, 4, 1, ans_col='wu_day_price')
+    data, time = preprocess(merged_data, 30, 30, 4, 1)
     train_and_eval_model('weather_4ml', 'large', **data)
 # }}}
 
@@ -90,11 +90,13 @@ def exp1():# {{{
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
     start, end = d.get_start_end_tick()
-    merged_data = d.get_data(start, end)
-    data_retain, _ = preprocess(merged_data, 1, 1, 7, 1, ans_col='wu_day_price')
+    merged_data = d.get_merged_data(start, end)
+    data, ans, date = merged_data.iloc[:, 1:], merged_data['wu_day_price'],\
+                      merged_data['date']
+    data_retain, _ = preprocess(data, ans, date, 1, 1, 7, 1)
 
-    merged_data = d.get_data('2014-01-01', end)
-    data_drop, _ = preprocess(merged_data, 1, 1, 7, 1, ans_col='wu_day_price')
+    merged_data = d.get_merged_data('2014-01-01', end)
+    data_drop, _ = preprocess(merged_data, 1, 1, 7, 1)
 
     retain = []
     drop = []
@@ -120,21 +122,22 @@ def exp2():# {{{
         d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
     start, end = d.get_start_end_tick()
-    merged_data = d.get_data(start, end)
-    columns = np.array((d.get_columns()))
-    columns = np.delete(columns, np.where((columns == 'date') | (columns == 'wu_day_price')))
+    merged_data = d.get_merged_data(start, end)
+
+    input_data, ans, date = merged_data.iloc[:, 1:], merged_data[['wu_day_price']],\
+                      merged_data['date']
+    columns = input_data.columns.to_numpy()
 
     columns_history = []
     mse_history = []
     ori_columns = columns.copy()
-    base = ['date', 'wu_day_price']
     for _ in range(len(columns) - 2):
         res_list = []
         for i in range(len(columns)):
             mask = np.ones(len(columns), dtype=bool)
             mask[i] = False
             data_mask = columns[mask]
-            data, _ = preprocess(merged_data[base + list(data_mask)], 1, 1, 7, 1, ans_col='wu_day_price')
+            data, _ = preprocess(input_data[data_mask], ans, date, 1, 1, 7, 1)
             res = train_and_eval_model('test', 'base', **data, drop_model=True)
             res_list.append(res)
         idx = np.argmin(res_list)
@@ -160,8 +163,8 @@ def exp3():# {{{
       'temp_high', 'temp_low', 'humidity', 'humidity_low', 'wind_dir', 'wind_max',
       'wind_max_dir', 'rainfall', 'wu_ex_price', 'wu_day_amount']
 
-    ori_data, _ = preprocess(data, 1, 1, 7, 1, ans_col='wu_day_price')
-    drop_data, _ = preprocess(data[use_cols], 1, 1, 7, 1, ans_col='wu_day_price')
+    ori_data, _ = preprocess(data, 1, 1, 7, 1)
+    drop_data, _ = preprocess(data[use_cols], 1, 1, 7, 1)
     base_ori = train_and_eval_model('test', 'base', **ori_data, drop_model=True)
     base_select = train_and_eval_model('test', 'base', **drop_data, drop_model=True)
     large_ori = train_and_eval_model('test', 'large', **ori_data, drop_model=True)
