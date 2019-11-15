@@ -39,7 +39,7 @@ def build_large_model(unit_size, num_input_unit, num_output_unit):
     model = LSTM(256, activation='relu', return_sequences=True)(model)
     model = LSTM(256, activation='relu', return_sequences=True)(model)
     model = LSTM(256, activation='relu', return_sequences=True)(model)
-    model = LSTM(256, activation='relu', return_sequences=False)(model)
+    model = LSTM(256, activation='relu', return_sequences=True)(model)
     model = Dense(128)(model)
     model = Dropout(0.2)(model)
     model = Dense(num_output_unit)(model)

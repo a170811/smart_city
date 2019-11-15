@@ -154,34 +154,50 @@ def exp2():# {{{
         print('')
 # }}}
 
-
 def exp3():# {{{
     # testing for results of exp2, results of selection
 
-    d, data = load_wu()
-    use_cols = ['date', 'wu_day_price'] + ['CAD', 'SAR', 'AED', 'pf_weight', 'yb_price', 'pa', 'pa_high', 'pa_low',
-      'temp_high', 'temp_low', 'humidity', 'humidity_low', 'wind_dir', 'wind_max',
-      'wind_max_dir', 'rainfall', 'wu_ex_price', 'wu_day_amount']
+    d = RowDataHandler()
+    for filename, inpu_method in data_common.items():
+        d.add(pd.read_csv(f'{path}/{filename}.csv'), inpu_method)
+    for filename, inpu_method in data_wu.items():
+        d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
 
-    ori_data, _ = preprocess(data, 1, 1, 7, 1)
-    drop_data, _ = preprocess(data[use_cols], 1, 1, 7, 1)
-    base_ori = train_and_eval_model('test', 'base', **ori_data, drop_model=True)
-    base_select = train_and_eval_model('test', 'base', **drop_data, drop_model=True)
-    large_ori = train_and_eval_model('test', 'large', **ori_data, drop_model=True)
-    large_select = train_and_eval_model('test', 'large', **drop_data, drop_model=True)
+    start, end = d.get_start_end_tick()
+    merged_data = d.get_merged_data(start, end)
 
-    print('base model: ')
-    print('origin columns: ', base_ori)
-    print('selection columns: ', base_select)
-    print('large model: ')
-    print('origin columns: ', large_ori)
-    print('selection columns: ', large_select)
+    input_data, ans, date = merged_data.iloc[:, 1:], merged_data[['wu_day_price']],\
+                      merged_data['date']
+
+    with open('logs/selec_res', 'r') as f:
+        cols_set = [line.strip()[11:-1].replace('\'', '').split(' ') for line in f.readlines()[1:]]
+
+    for use_cols in cols_set:
+        input_data = input_data[use_cols]
+        data, _ = preprocess(input_data, ans, date, 1, 1, 7, 1)
+        res_base = []
+        res_large = []
+
+        for i in range(5):
+            res1 = train_and_eval_model('test', 'base', **data, drop_model=True)
+            res2 = train_and_eval_model('test', 'large', **data, drop_model=True)
+            res_base.append(res1)
+            res_large.append(res2)
+
+        with open('logs/exp3_res1', 'a+') as f:
+            f.write(f'1.\n')
+            f.write(f'Use columns: {use_cols}\n')
+            f.write(f'base model: {res_base}\n')
+            f.write(f'base mean: {np.mean(res_base)}\n')
+            f.write(f'large model: {res_large}\n')
+            f.write(f'large mean: {np.mean(res_large)}\n\n')
+
 # }}}
 
 if '__main__' == __name__:
 
-    # path = './data/use'
-    path = './backend'
+    path = './data/use'
+    # path = './backend'
 
     # value is None for daily data
     data_common = {
