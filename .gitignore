@@ -5,3 +5,7 @@ data
 models/
 logs/
 __pycache__/
+backend
+features/
+runs/
+update.sh
