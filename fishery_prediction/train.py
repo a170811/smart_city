@@ -8,18 +8,41 @@ import pandas as pd
 from build_set import RowDataHandler, preprocess
 from model import train_and_eval_model, linear_regression
 
-def load_wu(start=None, end=None):
+def load_wu(columns=None, start=None, end=None):
 
     d = RowDataHandler()
     for filename, inpu_method in data_common.items():
-        d.add(pd.read_csv(f'{path}/{filename}.csv'), inpu_method)
+        d.add(f'{path}/{filename}.csv', inpu_method)
     for filename, inpu_method in data_wu.items():
-        d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
+        d.add(f'{path}/wu/{filename}.csv', inpu_method)
 
     if start is None and end is None:
         start, end = d.get_start_end_tick()
+    merged_data = d.get_merged_data(start, end)
+    input_data, ans, date = merged_data, merged_data[['wu_day_price']],\
+                      merged_data.index
+    if columns is not None:
+        input_data = input_data[columns]
 
-    return d, d.get_merged_data(start, end)
+    return input_data, ans, date
+
+def load_chi(columns=None, start=None, end=None):
+
+    d = RowDataHandler()
+    for filename, inpu_method in data_common.items():
+        d.add(f'{path}/{filename}.csv', inpu_method)
+    for filename, inpu_method in data_chi.items():
+        d.add(f'{path}/wu/{filename}.csv', inpu_method)
+
+    if start is None and end is None:
+        start, end = d.get_start_end_tick()
+    merged_data = d.get_merged_data(start, end)
+    input_data, ans, date = merged_data, merged_data[['chi_day_price']],\
+                      merged_data.index
+    if columns is not None:
+        input_data = input_data[columns]
+
+    return input_data, ans, date
 
 def main():# {{{
 
@@ -115,17 +138,7 @@ def exp1():# {{{
 def exp2():# {{{
     # which features to use
 
-    d = RowDataHandler()
-    for filename, inpu_method in data_common.items():
-        d.add(pd.read_csv(f'{path}/{filename}.csv'), inpu_method)
-    for filename, inpu_method in data_wu.items():
-        d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
-
-    start, end = d.get_start_end_tick()
-    merged_data = d.get_merged_data(start, end)
-
-    input_data, ans, date = merged_data.iloc[:, 1:], merged_data[['wu_day_price']],\
-                      merged_data['date']
+    input_data, ans, date = load_wu()
     columns = input_data.columns.to_numpy()
 
     columns_history = []
@@ -157,17 +170,7 @@ def exp2():# {{{
 def exp3():# {{{
     # testing for results of exp2, results of selection
 
-    d = RowDataHandler()
-    for filename, inpu_method in data_common.items():
-        d.add(pd.read_csv(f'{path}/{filename}.csv'), inpu_method)
-    for filename, inpu_method in data_wu.items():
-        d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
-
-    start, end = d.get_start_end_tick()
-    merged_data = d.get_merged_data(start, end)
-
-    input_data, ans, date = merged_data.iloc[:, 1:], merged_data[['wu_day_price']],\
-                      merged_data['date']
+    input_data, ans, date = load_wu()
 
     with open('logs/selec_res', 'r') as f:
         cols_set = [line.strip()[11:-1].replace('\'', '').split(' ') for line in f.readlines()[1:]]
@@ -184,7 +187,7 @@ def exp3():# {{{
             res_base.append(res1)
             res_large.append(res2)
 
-        with open('logs/exp3_res1', 'a+') as f:
+        with open('logs/exp3_res2', 'a+') as f:
             f.write(f'1.\n')
             f.write(f'Use columns: {use_cols}\n')
             f.write(f'base model: {res_base}\n')
@@ -193,6 +196,12 @@ def exp3():# {{{
             f.write(f'large mean: {np.mean(res_large)}\n\n')
 
 # }}}
+
+def test():
+    input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
+    data, _ = preprocess(input_data, ans, date, 1, 1, 7, 1)
+    res = train_and_eval_model('test', 'base', **data, drop_model=True)
+    print(res)
 
 if '__main__' == __name__:
 
@@ -209,7 +218,7 @@ if '__main__' == __name__:
     data_wu = {
         'wu_export': ['divide', 'same'],
         'wu_price_perDate': None,
-        # 'wu_price_perMonth': ['same', 'divide'],
+        'wu_price_perMonth': ['same', 'divide'],
     }
     data_chi = {
         'chi_export': ['divide', 'same'],
@@ -218,8 +227,9 @@ if '__main__' == __name__:
         'chi_small_fish': ['divide', 'same']
     }
 
-    if 0 == len(argv):
+    if 1 == len(argv):
         test()
+        exit()
 
     if argv[1] == '1':
         exp1()
