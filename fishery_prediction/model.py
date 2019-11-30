@@ -21,8 +21,8 @@ def build_model(unit_size, num_input_unit, num_output_unit):
 
     model = BatchNormalization()(inputs)
     model = LSTM(256, activation='relu', return_sequences=True)(model)
-    model = Dense(num_output_unit)(model)
-    model = Lambda(lambda x: x[:, -1:, :])(model)
+    model = Dense(1)(model)
+    model = Lambda(lambda x: x[:, -num_output_unit:, :])(model)
 
     model = Model(inputs, model)
 
@@ -42,8 +42,8 @@ def build_large_model(unit_size, num_input_unit, num_output_unit):
     model = LSTM(256, activation='relu', return_sequences=True)(model)
     model = Dense(128)(model)
     model = Dropout(0.2)(model)
-    model = Dense(num_output_unit)(model)
-    model = Lambda(lambda x: x[:, -1:, :])(model)
+    model = Dense(1)(model)
+    model = Lambda(lambda x: x[:, -num_output_unit:, :])(model)
 
     model = Model(inputs, model)
 
@@ -81,7 +81,7 @@ def train_and_eval_model(model_name, model_type, train_x, train_y, valid_x, vali
 	epochs=1000,\
 	callbacks=[model_ckpt, tensorboard, early_stp])
     mse = model.evaluate(test_x, test_y)
-    print(f'mse = {mse}')
+    # print(f'mse = {mse}')
     return mse
 
 def linear_regression(test_x, test_y):
@@ -100,7 +100,7 @@ def linear_regression(test_x, test_y):
     predictions = np.array(predictions)
 
     mse = mean_squared_error(np.squeeze(predictions, axis=2), test_y)
-    print(mse)
+    # print(mse)
     return mse
 
 if __name__ == '__main__':

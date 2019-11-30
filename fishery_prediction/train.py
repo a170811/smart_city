@@ -197,6 +197,22 @@ def exp3():# {{{
 
 # }}}
 
+def exp4():# {{{
+
+    input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
+
+    for i in range(5, 10):
+        data, _ = preprocess(input_data, ans, date, 1, 1, 7, 3)
+
+        npad = ((0, 0), (0, 3), (0, 0))
+        data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
+        data['valid_x'] = np.pad(data['valid_x'], npad, 'constant', constant_values=0)
+        data['test_x'] = np.pad(data['test_x'], npad, 'constant', constant_values=0)
+
+        mse = train_and_eval_model('test', 'base', **data, drop_model=True)
+        print(f'inupt_size={i}\nmse={mse}')
+# }}}
+
 def test():
     input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
     data, _ = preprocess(input_data, ans, date, 1, 1, 7, 1)
@@ -237,4 +253,6 @@ if '__main__' == __name__:
         exp2()
     elif argv[1] == '3':
         exp3()
+    elif argv[1] == '4':
+        exp4()
 
