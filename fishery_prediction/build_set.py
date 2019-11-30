@@ -10,14 +10,14 @@ class RowDataHandler():# {{{
 
     def __init__(self):
 
-        self.df = pd.DataFrame(pd.date_range('1990-01-01', '2020-12-31'), columns=['date'])
+        self.df = pd.DataFrame(index=pd.date_range('1990-01-01', '2020-12-31'))
 
-    def add(self, df_load, inputations):
+    def add(self, df_path, inputations):
         # df(dataframe): first col must be 'date'
         # inputation: monthly data will be inputated to daily data
         #             `divide`, `same`
-        assert 'date' == df_load.columns[0],\
-                'the first columns of loading data, should be `date`'
+
+        df_load = pd.read_csv(df_path, index_col='date')
 
         # drop na columns
         sparse_columns = df_load.columns[df_load.isnull().mean() > 0.5].to_list()
@@ -28,22 +28,22 @@ class RowDataHandler():# {{{
         df_load = df_load.drop(columns=sparse_columns)
 
         df_load = df_load.astype(str)
-        df_load['date'] = pd.to_datetime(df_load['date'])
-        df_load.iloc[:, 1:] = df_load.iloc[:, 1:].apply(lambda x: x.str.replace(',', ''))
-        df_load.iloc[:, 1:] = df_load.iloc[:, 1:].astype(float)
+        df_load.index = pd.to_datetime(df_load.index)
+        df_load = df_load.apply(lambda x: x.str.replace(',', ''))
+        df_load = df_load.astype(float)
 
         if inputations is not None:
-            days_list = df_load['date'].map(lambda x: monthrange(x.year, x.month)[1])
-            for col, inputation in zip(df_load.columns[1:], inputations):
+            days_list = df_load.index.map(lambda x: monthrange(x.year, x.month)[1])
+            for col, inputation in zip(df_load.columns, inputations):
                 if 'divide' == inputation:
                     df_load[col] /= days_list
             df_new = pd.DataFrame(np.repeat(df_load.to_numpy(), days_list,\
                         axis=0), columns=df_load.columns)
-            df_new['date'] = pd.date_range(df_load['date'][0], periods=np.sum(days_list))
+            df_new.index = pd.date_range(df_load.index[0], periods=np.sum(days_list))
         else:
             df_new = df_load
 
-        self.df = pd.merge(self.df, df_new, how='inner', on=['date'])
+        self.df = pd.merge(self.df, df_new, left_index=True, right_index=True)
 
     def drop_columns(self, columns):
         self.df = self.df.drop(columns=columns)
@@ -53,20 +53,20 @@ class RowDataHandler():# {{{
         assert len(self.df) > 0, 'there is no data in handler, please add first!!'
         start = datetime.strptime(start, '%Y-%m-%d')
         end = datetime.strptime(end, '%Y-%m-%d')
-        df_start = self.df['date'].iloc[0]
-        df_end = self.df['date'].iloc[-1]
+        df_start = self.df.index[0]
+        df_end = self.df.index[-1]
         assert (start >= df_start) & (end <= df_end), 'timestamp is out of data'
 
-        res = self.df.loc[(self.df['date'] >= start) & (self.df['date'] <= end)]
-        return res.reset_index(drop=True)
+        res = self.df.loc[(self.df.index >= start) & (self.df.index <= end)]
+        return res
 
     def get_columns(self):
         return self.df.columns
 
     def get_start_end_tick(self):
-        date = self.df['date']
-        start = date.iloc[0].__format__('%Y-%m-%d')
-        end = date.iloc[-1].__format__('%Y-%m-%d')
+        date = self.df.index
+        start = date[0].__format__('%Y-%m-%d')
+        end = date[-1].__format__('%Y-%m-%d')
         return start, end
 # }}}
 
@@ -157,17 +157,19 @@ if '__main__' == __name__:
     # d.add(pd.read_csv(f'{path}/powder_feed.csv'), 'same')
     # d.add(pd.read_csv(f'{path}/wu/wu_price_perMonth.csv'), 'same')
     for filename, inpu_method in data_common.items():
-        d.add(pd.read_csv(f'{path}/{filename}.csv'), inpu_method)
+        d.add(f'{path}/{filename}.csv', inpu_method)
     for filename, inpu_method in data_wu.items():
-        d.add(pd.read_csv(f'{path}/wu/{filename}.csv'), inpu_method)
+        d.add(f'{path}/wu/{filename}.csv', inpu_method)
 
-    merged_data = d.get_merged_data(*d.get_start_end_tick())
+    start, end = d.get_start_end_tick()
+    merged_data = d.get_merged_data(start, end)
+
     # col = d.get_columns()[5:]
     # d.drop_columns(col)
     # res = d.get_merged_data(*d.get_start_end_tick())
 
-    data, ans , date = merged_data.iloc[:, 1:], merged_data[['wu_day_price']],\
-                                merged_data['date']
+    data, ans , date = merged_data, merged_data[['wu_day_price']],\
+                                merged_data.index
 
     columns = data.columns
     data, time = preprocess(data, ans, date)
