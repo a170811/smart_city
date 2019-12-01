@@ -201,16 +201,57 @@ def exp4():# {{{
 
     input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
 
-    for i in range(5, 10):
-        data, _ = preprocess(input_data, ans, date, 1, 1, 7, 3)
+    for input_size in range(1, 15):
+        mses=[]
+        for i in range(5):
+            data, _ = preprocess(input_data, ans, date, 1, 1, input_size, 3)
 
-        npad = ((0, 0), (0, 3), (0, 0))
-        data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
-        data['valid_x'] = np.pad(data['valid_x'], npad, 'constant', constant_values=0)
-        data['test_x'] = np.pad(data['test_x'], npad, 'constant', constant_values=0)
+            npad = ((0, 0), (0, 3), (0, 0))
+            data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
+            data['valid_x'] = np.pad(data['valid_x'], npad, 'constant', constant_values=0)
+            data['test_x'] = np.pad(data['test_x'], npad, 'constant', constant_values=0)
 
-        mse = train_and_eval_model('test', 'base', **data, drop_model=True)
-        print(f'inupt_size={i}\nmse={mse}')
+            mse = train_and_eval_model('test', 'base', **data, drop_model=True)
+            mses.append(mse)
+        print(f'inupt_size={input_size}\nmse={np.mean(mse)}')
+# }}}
+
+def exp5():# {{{
+
+    input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
+
+    for input_size in range(1, 15):
+        mses=[]
+        for i in range(5):
+            data, _ = preprocess(input_data, ans, date, 7, 7, input_size, 2)
+
+            npad = ((0, 0), (0, 3), (0, 0))
+            data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
+            data['valid_x'] = np.pad(data['valid_x'], npad, 'constant', constant_values=0)
+            data['test_x'] = np.pad(data['test_x'], npad, 'constant', constant_values=0)
+
+            mse = train_and_eval_model('test', 'base', **data, drop_model=True)
+            mses.append(mse)
+        print(f'inupt_size={input_size}\nmse={np.mean(mse)}')
+# }}}
+
+def exp6():# {{{
+
+    input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
+
+    for input_size in range(1, 15):
+        mses=[]
+        for i in range(5):
+            data, _ = preprocess(input_data, ans, date, 30, 30, input_size, 1)
+
+            npad = ((0, 0), (0, 3), (0, 0))
+            data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
+            data['valid_x'] = np.pad(data['valid_x'], npad, 'constant', constant_values=0)
+            data['test_x'] = np.pad(data['test_x'], npad, 'constant', constant_values=0)
+
+            mse = train_and_eval_model('test', 'base', **data, drop_model=True)
+            mses.append(mse)
+        print(f'inupt_size={input_size}\nmse={np.mean(mse)}')
 # }}}
 
 def test():
