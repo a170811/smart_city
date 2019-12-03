@@ -170,10 +170,17 @@ def exp2():# {{{
 def exp3():# {{{
     # testing for results of exp2, results of selection
 
-    input_data, ans, date = load_wu()
+    target = 'wu'
 
-    with open('logs/selec_res', 'r') as f:
-        cols_set = [line.strip()[11:-1].replace('\'', '').split(' ') for line in f.readlines()[1:]]
+    if 'wu' == target:
+        input_data, ans, date = load_wu()
+    elif 'chi' == target:
+        input_data, ans, date = load_chi()
+    else:
+        raise Exception(f'Error target: {target}')
+
+    with open(f'logs/selec_res_{target}', 'r') as f:
+        cols_set = [line.strip()[11:-1].replace('\'', '').split(' ') for line in f.readlines()]
 
     for use_cols in cols_set:
         input_data = input_data[use_cols]
@@ -181,19 +188,21 @@ def exp3():# {{{
         res_base = []
         res_large = []
 
-        for i in range(5):
+        for i in range(1):
             res1 = train_and_eval_model('test', 'base', **data, drop_model=True)
             res2 = train_and_eval_model('test', 'large', **data, drop_model=True)
             res_base.append(res1)
             res_large.append(res2)
 
-        with open('logs/exp3_res2', 'a+') as f:
+        with open(f'logs/exp3_eval_selection_{target}', 'a+') as f:
             f.write(f'1.\n')
             f.write(f'Use columns: {use_cols}\n')
             f.write(f'base model: {res_base}\n')
             f.write(f'base mean: {np.mean(res_base)}\n')
             f.write(f'large model: {res_large}\n')
             f.write(f'large mean: {np.mean(res_large)}\n\n')
+
+        break
 
 # }}}
 
