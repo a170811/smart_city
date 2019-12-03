@@ -32,7 +32,7 @@ def load_chi(columns=None, start=None, end=None):
     for filename, inpu_method in data_common.items():
         d.add(f'{path}/{filename}.csv', inpu_method)
     for filename, inpu_method in data_chi.items():
-        d.add(f'{path}/wu/{filename}.csv', inpu_method)
+        d.add(f'{path}/chi/{filename}.csv', inpu_method)
 
     if start is None and end is None:
         start, end = d.get_start_end_tick()
