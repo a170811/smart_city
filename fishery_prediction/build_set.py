@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from calendar import monthrange
+from calendar import monthrange, weekday
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -98,14 +98,21 @@ def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,
     data = data.fillna(0)
 
     unit_x, unit_y, unit_t = [], [], []
-    for i in range(0, len(data), sample_stride):
-        end = i + unit_length
-        if end > len(data):
-            break
-        x = data.iloc[i: end, :].mean(axis=0).to_list()
-        y = ans.iloc[i: end].mean(axis=0).to_list()
-        t = date[end - 1]
-        # t = date[i]
+    start_idx = 0
+    if 7 == unit_length:
+        for i in range(len(data)):
+            t = date[i]
+            start_idx = i
+            if 5 == weekday(t.year, t.month, t.day):
+                break
+    for unit_end in range(start_idx, len(data), sample_stride):
+        unit_start = unit_end - unit_length
+        if unit_start < 0:
+            continue
+
+        x = data.iloc[unit_start: unit_end, :].mean(axis=0).to_list()
+        y = ans.iloc[unit_start: unit_end].mean(axis=0).to_list()
+        t = date[unit_end - 1]
         unit_x.append(x)
         unit_y.append(y)
         unit_t.append(t)

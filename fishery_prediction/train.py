@@ -8,6 +8,26 @@ import pandas as pd
 from build_set import RowDataHandler, preprocess, split
 from model import train_and_eval_model, linear_regression
 
+path = './data/use'
+# value is None for daily data
+data_common = {
+    'currency': None,
+    'powder_feed': ['same', 'same'],
+    'yellow_bean': ['same'],
+    'weather': None
+}
+data_wu = {
+    'wu_export': ['divide', 'same'],
+    'wu_price_perDate': None,
+    'wu_price_perMonth': ['same', 'divide'],
+}
+data_chi = {
+    'chi_export': ['divide', 'same'],
+    'chi_price_perDate': None,
+    'chi_price_perMonth': ['same', 'divede'],
+    'chi_small_fish': ['divide', 'same']
+}
+
 
 def load_wu(columns=None, start=None, end=None):
 
@@ -27,7 +47,9 @@ def load_wu(columns=None, start=None, end=None):
 
     return input_data, ans, date
 
+
 def load_chi(columns=None, start=None, end=None):
+
 
     d = RowDataHandler()
     for filename, inpu_method in data_common.items():
@@ -312,27 +334,6 @@ def chi_model():
 
 if '__main__' == __name__:
 
-    path = './data/use'
-    # path = './backend'
-
-    # value is None for daily data
-    data_common = {
-        'currency': None,
-        'powder_feed': ['same', 'same'],
-        'yellow_bean': ['same'],
-        'weather': None
-    }
-    data_wu = {
-        'wu_export': ['divide', 'same'],
-        'wu_price_perDate': None,
-        'wu_price_perMonth': ['same', 'divide'],
-    }
-    data_chi = {
-        'chi_export': ['divide', 'same'],
-        'chi_price_perDate': None,
-        'chi_price_perMonth': ['same', 'divede'],
-        'chi_small_fish': ['divide', 'same']
-    }
 
     if 1 == len(argv):
         test()

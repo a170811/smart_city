@@ -4,10 +4,9 @@ import numpy as np
 import os
 from sys import argv
 
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers import Input, LSTM, Lambda, Conv1D, Dropout, Dense,\
     Flatten, Dropout, BatchNormalization
-from keras.models import Model
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 import keras.backend as K
@@ -84,6 +83,7 @@ def train_and_eval_model(model_name, model_type, train_x, train_y, valid_x, vali
     # print(f'mse = {mse}')
     return mse
 
+
 def linear_regression(test_x, test_y):
 
     print(test_x.shape, test_y.shape)
@@ -102,6 +102,7 @@ def linear_regression(test_x, test_y):
     mse = mean_squared_error(np.squeeze(predictions, axis=2), test_y)
     # print(mse)
     return mse
+
 
 if __name__ == '__main__':
 
