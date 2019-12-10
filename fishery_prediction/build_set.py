@@ -119,7 +119,7 @@ def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,
         for i in range(len(data)):
             t = date[i]
             start_idx = i
-            if 5 == weekday(t.year, t.month, t.day):
+            if 6 == weekday(t.year, t.month, t.day):
                 break
     for unit_end in range(start_idx, len(data), sample_stride):
         unit_start = unit_end - unit_length
