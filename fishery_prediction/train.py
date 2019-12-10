@@ -5,8 +5,9 @@ from sys import argv
 import numpy as np
 import pandas as pd
 
-from build_set import RowDataHandler, preprocess
+from build_set import RowDataHandler, preprocess, split
 from model import train_and_eval_model, linear_regression
+
 
 def load_wu(columns=None, start=None, end=None):
 
@@ -150,7 +151,8 @@ def exp2():# {{{
             mask = np.ones(len(columns), dtype=bool)
             mask[i] = False
             data_mask = columns[mask]
-            data, _ = preprocess(input_data[data_mask], ans, date, 1, 1, 7, 1)
+            processed_data = preprocess(input_data[data_mask], ans, date, 1, 1, 7, 1)
+            data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
             res = train_and_eval_model('test', 'base', **data, drop_model=True)
             res_list.append(res)
         idx = np.argmin(res_list)
@@ -184,7 +186,8 @@ def exp3():# {{{
 
     for use_cols in cols_set:
         input_data = input_data[use_cols]
-        data, _ = preprocess(input_data, ans, date, 1, 1, 7, 1)
+        processed_data = preprocess(input_data, ans, date, 1, 1, 7, 1)
+        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
         res_base = []
         res_large = []
 
@@ -213,7 +216,8 @@ def exp4():# {{{
     for input_size in range(1, 15):
         mses=[]
         for i in range(5):
-            data, _ = preprocess(input_data, ans, date, 1, 1, input_size, 3)
+            processed_data = preprocess(input_data, ans, date, 1, 1, input_size, 3)
+            data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
 
             npad = ((0, 0), (0, 3), (0, 0))
             data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
@@ -232,7 +236,8 @@ def exp5():# {{{
     for input_size in range(1, 15):
         mses=[]
         for i in range(5):
-            data, _ = preprocess(input_data, ans, date, 7, 7, input_size, 2)
+            processed_data = preprocess(input_data, ans, date, 7, 7, input_size, 2)
+            data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
 
             npad = ((0, 0), (0, 3), (0, 0))
             data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
@@ -251,7 +256,8 @@ def exp6():# {{{
     for input_size in range(1, 15):
         mses=[]
         for i in range(5):
-            data, _ = preprocess(input_data, ans, date, 30, 30, input_size, 1)
+            processed_data = preprocess(input_data, ans, date, 30, 30, input_size, 1)
+            data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
 
             npad = ((0, 0), (0, 3), (0, 0))
             data['train_x'] = np.pad(data['train_x'], npad, 'constant', constant_values=0)
@@ -265,8 +271,43 @@ def exp6():# {{{
 
 def test():
     input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
-    data, _ = preprocess(input_data, ans, date, 1, 1, 7, 1)
+    processed_data = preprocess(input_data, ans, date, 1, 1, 7, 1)
+    data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
     res = train_and_eval_model('test', 'base', **data, drop_model=True)
+    print(res)
+
+def wu_model():
+
+    mode = argv[2]
+
+    input_data, ans, date = load_wu(['USD', 'AED', 'yb_price', 'pa', 'pa_high', 'wind_speed', 'rainfall', 'wu_ex_price', 'wu_day_amount', 'wu_month_price'])
+    if 'day' == mode:
+        processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
+        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
+        used_model = 'large'
+    elif 'week' == mode:
+        processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
+        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
+        used_model = 'large'
+    model_name = f'wu_{mode}_{used_model}'
+    res = train_and_eval_model(model_name, used_model, **data)
+    print(res)
+
+def chi_model():
+
+    mode = argv[2]
+
+    input_data, ans, date = load_chi(['pa_high', 'pa_low', 'rainfall', 'chi_month_price'])
+    if 'day' == mode:
+        processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
+        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
+        used_model = 'large'
+    elif 'week' == mode:
+        processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
+        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
+        used_model = 'large'
+    model_name = f'chi_{mode}_{used_model}'
+    res = train_and_eval_model(model_name, used_model, **data)
     print(res)
 
 if '__main__' == __name__:
@@ -297,12 +338,16 @@ if '__main__' == __name__:
         test()
         exit()
 
-    if argv[1] == '1':
+    if '1' == argv[1]:
         exp1()
-    elif argv[1] == '2':
+    elif '2' == argv[1]:
         exp2()
-    elif argv[1] == '3':
+    elif '3' == argv[1]:
         exp3()
-    elif argv[1] == '4':
+    elif '4' == argv[1]:
         exp4()
+    elif 'wu' == argv[1]:
+        wu_model()
+    elif 'chi' == argv[1]:
+        chi_model()
 

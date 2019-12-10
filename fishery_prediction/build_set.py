@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
+
 class RowDataHandler():# {{{
 
     def __init__(self):
@@ -76,9 +77,20 @@ def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,
     #       unit length
     #     |<---->| (mean)
     # ------------------------------- time ------------------------------->
-    #     ^         ^        ^
-    #     |         |        | sample stride
+    #            ^        ^        ^
+    #            |        |        | sample stride
+    #            t        t        t
+    # ** the timestemp is refer to the first day of each unit
+
+    # future
     #
+    #            1 ... num_used_unit ...  N             1 .. num_pred_unit .. N
+    #        use unit                 pred unit    pred unit              pred unit
+    #     |<--(mean)-->|    ...    |<--(mean)-->|<--(mean)-->|    ...   |<--(mean)-->|
+    # ------------------------------- time ------------------------------------------->
+    #                                           ^        ^        ^ (N used_unit)
+    #                                           |        |        | sample stride
+    #                                           t        t        t
     # ** the timestemp is refer to the first day of each unit
 
     assert len(data) == len(ans), 'length of data and ans are mismatch!!'
@@ -92,7 +104,8 @@ def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,
             break
         x = data.iloc[i: end, :].mean(axis=0).to_list()
         y = ans.iloc[i: end].mean(axis=0).to_list()
-        t = date[i]
+        t = date[end - 1]
+        # t = date[i]
         unit_x.append(x)
         unit_y.append(y)
         unit_t.append(t)
@@ -106,10 +119,22 @@ def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,
         y = unit_y[i+num_used_unit:i+end]
         set_x.append(x)
         set_y.append(y)
-        set_t.append(unit_t[i+num_used_unit])
+        set_t.append(unit_t[i+num_used_unit-1])
     set_x, set_y, set_t = np.array(set_x), np.array(set_y), np.array(set_t)
 
-    split_point = [int(len(set_x)*0.8), int(len(set_x)*0.9)]
+    return (set_x, set_y, set_t)
+
+# }}}
+
+
+def split(data, tr_ratio, va_ratio, te_ratio = 0):
+
+    assert 1 == tr_ratio + va_ratio + te_ratio, 'split ratio error'
+
+    set_x, set_y, set_t = data
+    s1 = tr_ratio
+    s2 = tr_ratio + va_ratio
+    split_point = [int(len(set_x)*s1), int(len(set_x)*s2)]
     tr_x, va_x, te_x = np.split(set_x, split_point)
     tr_y, va_y, te_y = np.split(set_y, split_point)
     tr_t, va_t, te_t = np.split(set_t, split_point)
@@ -128,7 +153,6 @@ def preprocess(data, ans, date, unit_length=7, sample_stride=7, num_used_unit=4,
         'test_t': te_t,
     }
     return data_res, time_res
-# }}}
 
 if '__main__' == __name__:
 
@@ -172,8 +196,9 @@ if '__main__' == __name__:
                                 merged_data.index
 
     columns = data.columns
-    data, time = preprocess(data, ans, date)
+    processed_data = preprocess(data, ans, date)
 
+    data, time = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
     pickle.dump(data, open('./data/wu_data.pkl', 'wb'))
     pickle.dump(time, open('./data/wu_time.pkl', 'wb'))
     pickle.dump(columns, open('./data/wu_columns.pkl', 'wb'))
