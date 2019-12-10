@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from calendar import monthrange, weekday
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import pickle
@@ -44,10 +44,26 @@ class RowDataHandler():# {{{
         else:
             df_new = df_load
 
+        df_new = self.fix_day_loss(df_new)
         self.df = pd.merge(self.df, df_new, left_index=True, right_index=True)
 
     def drop_columns(self, columns):
         self.df = self.df.drop(columns=columns)
+
+    def fix_day_loss(self, df):
+
+        s = df.index[0]
+        e = df.index[-1]
+        dates = pd.date_range(s, e, freq='D')
+        day = timedelta(days=1)
+        if len(dates) == len(df):
+            return df
+        new_df = pd.DataFrame(index=dates)
+        new_df = new_df.join(df)
+        nan_row = new_df.loc[new_df.isnull().any(axis=1)]
+        for row in nan_row.itertuples():
+            new_df.loc[row.Index] = new_df.loc[row.Index - day]
+        return new_df
 
     def get_merged_data(self, start, end):
 
@@ -194,7 +210,6 @@ if '__main__' == __name__:
 
     start, end = d.get_start_end_tick()
     merged_data = d.get_merged_data(start, end)
-
     # col = d.get_columns()[5:]
     # d.drop_columns(col)
     # res = d.get_merged_data(*d.get_start_end_tick())

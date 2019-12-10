@@ -71,7 +71,7 @@ if '__main__' == __name__:
     res = pd.concat([tr, va, te], ignore_index=True)
     print(res)
     filename = f'{target}_{mode}'
-    res.to_csv(f'{filename}.csv')
+    res.to_csv(f'{filename}.csv', index=False)
     with open(f'{filename}.info', 'w') as f:
         f.write(f"train: {tr['time'].iloc[0].__format__('%Y-%m-%d')} to {tr['time'].iloc[-1].__format__('%Y-%m-%d')}\n")
         f.write(f"valid: {va['time'].iloc[0].__format__('%Y-%m-%d')} to {va['time'].iloc[-1].__format__('%Y-%m-%d')}\n")
