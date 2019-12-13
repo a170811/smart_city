@@ -161,7 +161,12 @@ def exp1():# {{{
 def exp2():# {{{
     # which features to use
 
-    input_data, ans, date = load_wu()
+    if 'wu' == argv[2]:
+        input_data, ans, date = load_wu()
+    elif 'chi' == argv[2]:
+        input_data, ans, date = load_chi()
+    else:
+        exit()
     columns = input_data.columns.to_numpy()
 
     columns_history = []
@@ -194,7 +199,7 @@ def exp2():# {{{
 def exp3():# {{{
     # testing for results of exp2, results of selection
 
-    target = 'wu'
+    target = argv[2]
 
     if 'wu' == target:
         input_data, ans, date = load_wu()
@@ -213,7 +218,7 @@ def exp3():# {{{
         res_base = []
         res_large = []
 
-        for i in range(1):
+        for i in range(5):
             res1 = train_and_eval_model('test', 'base', **data, drop_model=True)
             res2 = train_and_eval_model('test', 'large', **data, drop_model=True)
             res_base.append(res1)
@@ -226,8 +231,6 @@ def exp3():# {{{
             f.write(f'base mean: {np.mean(res_base)}\n')
             f.write(f'large model: {res_large}\n')
             f.write(f'large mean: {np.mean(res_large)}\n\n')
-
-        break
 
 # }}}
 
