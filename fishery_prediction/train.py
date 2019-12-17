@@ -29,6 +29,26 @@ data_chi = {
 }
 
 
+def load_data(target, mode):
+
+    if 'wu' == target:
+        input_data, ans, date = load_wu(['AED', 'pf_price', 'temp', 'humidity', 'wind_speed', 'wu_ex_weight', 'wu_ex_price', 'wu_month_price'])
+
+        if 'day' == mode:
+            processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
+        elif 'week' == mode:
+            processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
+    elif 'chi' == target:
+        input_data, ans, date = load_chi(['pa_high', 'pa_low', 'rainfall', 'chi_month_price'])
+
+        if 'day' == mode:
+            processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
+        elif 'week' == mode:
+            processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
+
+    data, time = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
+    return data, time
+
 def load_wu(columns=None, start=None, end=None):
 
     d = RowDataHandler()
@@ -295,44 +315,10 @@ def exp6():# {{{
 # }}}
 
 def test():
-    input_data, ans, date = load_wu(['SAR', 'yb_price', 'pa', 'humidity_low', 'wind_max_dir', 'wu_day_price', 'wu_day_amount'])
+    input_data, ans, date = load_wu(['AED', 'pf_price', 'temp', 'humidity', 'wind_speed', 'wu_ex_weight', 'wu_ex_price', 'wu_month_price'])
     processed_data = preprocess(input_data, ans, date, 1, 1, 7, 1)
     data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
-    res = train_and_eval_model('test', 'base', **data, drop_model=True)
-    print(res)
-
-def wu_model():
-
-    mode = argv[2]
-
-    input_data, ans, date = load_wu(['USD', 'AED', 'yb_price', 'pa', 'pa_high', 'wind_speed', 'rainfall', 'wu_ex_price', 'wu_day_amount', 'wu_month_price'])
-    if 'day' == mode:
-        processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
-        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
-        used_model = 'large'
-    elif 'week' == mode:
-        processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
-        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
-        used_model = 'large'
-    model_name = f'wu_{mode}_{used_model}'
-    res = train_and_eval_model(model_name, used_model, **data)
-    print(res)
-
-def chi_model():
-
-    mode = argv[2]
-
-    input_data, ans, date = load_chi(['pa_high', 'pa_low', 'rainfall', 'chi_month_price'])
-    if 'day' == mode:
-        processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
-        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
-        used_model = 'large'
-    elif 'week' == mode:
-        processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
-        data, _ = split(processed_data, tr_ratio=0.8, va_ratio=0.1, te_ratio=0.1)
-        used_model = 'large'
-    model_name = f'chi_{mode}_{used_model}'
-    res = train_and_eval_model(model_name, used_model, **data)
+    res = train_and_eval_model('test', 'base', **data)
     print(res)
 
 if '__main__' == __name__:
@@ -350,8 +336,15 @@ if '__main__' == __name__:
         exp3()
     elif '4' == argv[1]:
         exp4()
-    elif 'wu' == argv[1]:
-        wu_model()
-    elif 'chi' == argv[1]:
-        chi_model()
+    elif 'wu' == argv[1] or 'chi' == argv[2]:
+
+        target = argv[1]
+        mode = argv[2]
+        used_model = 'large'
+
+        data, _ = load_data(target, mode)
+        model_name = f'{target}_{mode}_{used_model}'
+        res = train_and_eval_model(model_name, used_model, **data)
+        print(f'model {model_name}: ', res)
+
 

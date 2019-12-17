@@ -79,9 +79,10 @@ def train_and_eval_model(model_name, model_type, train_x, train_y, valid_x, vali
 	batch_size=32,\
 	epochs=1000,\
 	callbacks=[model_ckpt, tensorboard, early_stp])
-    mse = model.evaluate(test_x, test_y)
+    mse_va = model.evaluate(valid_x, valid_y)
+    mse_te = model.evaluate(test_x, test_y)
     # print(f'mse = {mse}')
-    return mse
+    return mse_va, mse_te
 
 
 def linear_regression(test_x, test_y):
