@@ -39,7 +39,7 @@ def load_data(target, mode):
         elif 'week' == mode:
             processed_data = preprocess(input_data, ans, date, 7, 7, 8, 2)
     elif 'chi' == target:
-        input_data, ans, date = load_chi(['pa_high', 'pa_low', 'rainfall', 'chi_month_price'])
+        input_data, ans, date = load_chi(['wind_max', 'chi_day_price', 'chi_month_amount'])
 
         if 'day' == mode:
             processed_data = preprocess(input_data, ans, date, 1, 1, 11, 3)
@@ -336,7 +336,7 @@ if '__main__' == __name__:
         exp3()
     elif '4' == argv[1]:
         exp4()
-    elif 'wu' == argv[1] or 'chi' == argv[2]:
+    elif 'wu' == argv[1] or 'chi' == argv[1]:
 
         target = argv[1]
         mode = argv[2]

@@ -1,13 +1,26 @@
 #!/bin/bash
 
-echo '1. exp1: Whether to drop data before 2013' >> logs/exp.txt
-./train.py 1 | tail -n 30 >> logs/exp.txt
-echo '-------------------------------------------' >> logs/exp.txt
-echo '' >> logs/exp.txt
-echo '2. exp2: backward selection' >> logs/exp.txt
-./train.py 2 | tail -n 30 >> logs/exp.txt
-echo '-------------------------------------------' >> logs/exp.txt
-echo '' >> logs/exp.txt
+set -e
+
+# ./train.py wu day
+# ./train.py wu week
+# ./train.py chi day
+# ./train.py chi week
+
+# ./predict.py wu day wu_day_large.h5
+./predict.py wu week wu_week_large_11.h5
+./predict.py chi day chi_day_large_41.h5
+./predict.py chi week chi_week_large_21.h5
+echo 'all done'
+
+# echo '1. exp1: Whether to drop data before 2013' >> logs/exp.txt
+# ./train.py 1 | tail -n 30 >> logs/exp.txt
+# echo '-------------------------------------------' >> logs/exp.txt
+# echo '' >> logs/exp.txt
+# echo '2. exp2: backward selection' >> logs/exp.txt
+# ./train.py 2 | tail -n 30 >> logs/exp.txt
+# echo '-------------------------------------------' >> logs/exp.txt
+# echo '' >> logs/exp.txt
 
 # ./preprocess.py 1 7 1
 # ./train.py base 7d > logs/base_7d.txt
